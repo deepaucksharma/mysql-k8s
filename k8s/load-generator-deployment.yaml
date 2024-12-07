@@ -16,15 +16,13 @@ spec:
     spec:
       containers:
         - name: load-generator
-          image: load-generator:latest
+          image: mysql-newrelic-k6-load-generator:latest
+          imagePullPolicy: Never
           env:
             - name: API_URL
               value: "http://api-layer-service:3000"
             - name: NEW_RELIC_LICENSE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: newrelic-license-key
-                  key: NEW_RELIC_LICENSE_KEY
+              value: "dummy_local_dev_license_key_12345"
           resources:
             requests:
               cpu: "500m"

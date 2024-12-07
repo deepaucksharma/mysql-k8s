@@ -16,15 +16,13 @@ spec:
     spec:
       containers:
         - name: mysql
-          image: mysql:8.0
+          image: mysql-newrelic-k6-mysql:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 3306
           env:
             - name: MYSQL_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_ROOT_PASSWORD
+              value: dummy_local_password
             - name: MYSQL_DATABASE
               value: employees
           volumeMounts:

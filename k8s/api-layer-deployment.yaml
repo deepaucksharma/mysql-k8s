@@ -16,7 +16,8 @@ spec:
     spec:
       containers:
         - name: api-layer
-          image: api-layer:latest
+          image: mysql-newrelic-k6-api-layer:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 3000
           env:
@@ -25,17 +26,11 @@ spec:
             - name: MYSQL_USER
               value: "root"
             - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mysql-secret
-                  key: MYSQL_ROOT_PASSWORD
+              value: "dummy_local_password"
             - name: MYSQL_DATABASE
               value: "employees"
             - name: NEW_RELIC_LICENSE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: newrelic-license-key
-                  key: NEW_RELIC_LICENSE_KEY
+              value: "dummy_local_dev_license_key_12345"
           resources:
             requests:
               cpu: "500m"
