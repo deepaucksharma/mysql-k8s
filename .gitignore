@@ -1,0 +1,74 @@
+# .gitignore
+
+# Logs
+*.log
+logs/
+log/
+
+# Environment files
+.env
+*.env
+*.env.local
+
+# Dependency directories
+vendor/
+node_modules/
+api-layer/node_modules/
+load-generator/node_modules/
+
+# Build output
+build/
+dist/
+out/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Docker and Kubernetes
+*.tar
+*.gz
+docker-compose.override.yml
+
+# Security sensitive files
+*.key
+*secret*
+*password*
+
+# Go-specific
+*.exe
+*.test
+*.prof
+
+# MySQL specific
+*.sql.gz
+*.sql.zip
+
+# Backup files
+*.bkp
+*.backup
+
+# Compiled binaries
+*.dll
+*.so
+*.dylib
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Miscellaneous
+.history/
+.cache/

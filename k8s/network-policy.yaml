@@ -1,0 +1,16 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-to-mysql
+spec:
+  podSelector:
+    matchLabels:
+      app: mysql-newrelic
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-layer
+      ports:
+        - protocol: TCP
+          port: 3306

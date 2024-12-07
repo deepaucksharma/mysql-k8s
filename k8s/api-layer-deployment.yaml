@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-layer
+  labels:
+    app: api-layer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-layer
+  template:
+    metadata:
+      labels:
+        app: api-layer
+    spec:
+      containers:
+        - name: api-layer
+          image: api-layer:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: MYSQL_HOST
+              value: "mysql-newrelic-service"
+            - name: MYSQL_USER
+              value: "root"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+            - name: MYSQL_DATABASE
+              value: "employees"
+            - name: NEW_RELIC_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: newrelic-license-key
+                  key: NEW_RELIC_LICENSE_KEY
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"

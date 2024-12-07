@@ -1,0 +1,42 @@
+# configs/integrations.d/mysql-config.yml
+integrations:
+  - name: nri-mysql
+    env:
+      # Connection settings
+      MYSQL_HOSTNAME: ${MYSQL_HOSTNAME:-localhost}
+      MYSQL_PORT: ${MYSQL_PORT:-3306}
+      MYSQL_USERNAME: ${MYSQL_USERNAME:-root}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}  # Passed via environment variable
+      
+      # Metrics collection configuration
+      MYSQL_METRICS: true
+      MYSQL_COLLECT_DATABASES: true
+      MYSQL_COLLECT_SYSTEM_TABLES: true
+      
+      # Performance and resource monitoring
+      MYSQL_COLLECT_PROCESSLIST: true
+      MYSQL_COLLECT_REPLICATION_METRICS: true
+      MYSQL_COLLECT_INNODB_METRICS: true
+      
+      # Logging and troubleshooting
+      VERBOSE: ${VERBOSE:-0}
+      METRICS_SYSTEM_SAMPLE_RATE: 10
+      
+      # Error handling and retry
+      MYSQL_CONNECT_TIMEOUT: 10
+      MYSQL_READ_TIMEOUT: 10
+      MYSQL_WRITE_TIMEOUT: 10
+    
+    # Dynamic interval with environment variable support
+    interval: ${METRICS_INTERVAL:-30s}
+    
+    # Flexible labeling
+    labels:
+      environment: ${ENVIRONMENT:-development}
+      service: mysql-integration
+      cluster: ${CLUSTER_NAME:-local}
+      
+    # Optional: Discovery configuration
+    discovery:
+      pattern: 
+        - /var/lib/mysql/*.pid

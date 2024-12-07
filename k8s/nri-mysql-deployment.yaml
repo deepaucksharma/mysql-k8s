@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nri-mysql
+  labels:
+    app: nri-mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nri-mysql
+  template:
+    metadata:
+      labels:
+        app: nri-mysql
+    spec:
+      containers:
+        - name: nri-mysql
+          image: nri-mysql:latest
+          env:
+            - name: MYSQL_HOST
+              value: "mysql-newrelic-service"
+            - name: MYSQL_PORT
+              value: "3306"
+            - name: MYSQL_USER
+              value: "root"
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secret
+                  key: MYSQL_ROOT_PASSWORD
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
