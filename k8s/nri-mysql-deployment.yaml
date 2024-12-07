@@ -16,10 +16,15 @@ spec:
     spec:
       containers:
         - name: nri-mysql
-          image: nri-mysql:latest
+          image: newrelic/infrastructure-bundle:latest
           env:
+            - name: NRIA_LICENSE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-secrets
+                  key: NEW_RELIC_LICENSE_KEY
             - name: MYSQL_HOST
-              value: "mysql-newrelic-service"
+              value: "mysql-service"
             - name: MYSQL_PORT
               value: "3306"
             - name: MYSQL_USER
@@ -27,7 +32,7 @@ spec:
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: mysql-secret
+                  name: mysql-secrets
                   key: MYSQL_ROOT_PASSWORD
           resources:
             requests:

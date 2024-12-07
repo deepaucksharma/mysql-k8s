@@ -1,13 +1,31 @@
 # load-generator/Dockerfile
-FROM loadimpact/k6:latest
+FROM grafana/k6:latest
 
-# Copy k6 script and New Relic config
-COPY k6-script.js /scripts/k6-script.js
-COPY newrelic.ini /etc/newrelic.ini
+# Switch to root to install packages
+USER root
 
-# Set environment variables for New Relic
-ENV NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-ENV NEW_RELIC_APP_NAME="k6 Load Generator"
+# Install Node.js and npm
+RUN apk add --no-cache nodejs npm
 
-# Run the k6 test
-CMD ["run", "/scripts/k6-script.js"]
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and install dependencies
+COPY package.json .
+RUN npm install
+
+# Copy all necessary files
+COPY health-server.js .
+COPY k6-script.js .
+COPY start.sh .
+COPY newrelic.ini .
+
+# Make start script executable
+RUN chmod +x start.sh
+
+# Switch back to k6 user
+USER k6
+
+# Use shell to run the start script
+ENTRYPOINT ["/bin/sh"]
+CMD ["./start.sh"]

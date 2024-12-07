@@ -1,28 +1,79 @@
 #!/bin/bash
-# scripts/deploy-local.sh
+# deploy-local.sh - Deploys the local development environment
+set -e
 
-# Ensure .env is loaded
-if [ ! -f .env ]; then
-    echo ".env file not found!"
-    exit 1
-fi
+# Function to log messages
+log() {
+    echo -e "[$(date +'%Y-%m-%d %H:%M:%S')] $1"
+}
 
-# Fix file permissions
-chmod 644 configs/mysql/my.cnf
+# Function to check service health
+check_health() {
+    local service=$1
+    local port=$2
+    local max_attempts=$3
+    local attempt=1
 
-export $(grep -v '^#' .env | xargs)
+    log "Waiting for $service to be healthy..."
+    while [ $attempt -le $max_attempts ]; do
+        if curl -s http://localhost:$port/health &> /dev/null; then
+            log "✓ $service is healthy"
+            return 0
+        fi
+        log "Attempt $attempt/$max_attempts..."
+        sleep 5
+        ((attempt++))
+    done
+    return 1
+}
 
-# Build and run Docker Compose
-docker-compose up -d --build
+# Main deployment process
+main() {
+    # Verify environment
+    if [ ! -f .env ]; then
+        log "Error: .env file not found. Run setup-dev-env.ps1 first."
+        exit 1
+    fi
 
-# Wait for MySQL to initialize
-echo "Waiting for MySQL to initialize..."
-sleep 30
+    # Load environment variables
+    set -a
+    source .env
+    set +a
 
-# Check container status
-docker ps
-docker logs mysql-newrelic
+    # Deploy services
+    log "Deploying services..."
+    docker-compose down --remove-orphans
+    docker-compose pull
+    docker-compose up -d --build
 
-# Populate additional data if needed
-# Uncomment the following lines if you want to run bulk_insert.py automatically
-# docker exec -i mysql-newrelic python /scripts/bulk_insert.py
+    # Wait for services
+    log "Waiting for services to be ready..."
+    if ! check_health "MySQL" 3306 12; then
+        log "Error: MySQL failed to start"
+        docker-compose logs mysql
+        exit 1
+    fi
+
+    if ! check_health "API" 3000 12; then
+        log "Error: API failed to start"
+        docker-compose logs api
+        exit 1
+    fi
+
+    # Show status
+    log "Deployment complete! Services:"
+    docker-compose ps
+    
+    log "
+Service URLs:
+  API:        http://localhost:3000
+  Metrics:    http://localhost:8080
+  New Relic:  https://one.newrelic.com
+"
+}
+
+# Handle interrupts
+trap 'log "Interrupted, cleaning up..."; docker-compose down' INT
+
+# Run deployment
+main

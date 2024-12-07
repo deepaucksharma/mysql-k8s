@@ -1,65 +1,26 @@
-# MySQL Dockerfile with New Relic Integration
-ARG MYSQL_VERSION=8.0-oracle
-FROM golang:1.23-alpine AS builder
-
-# Clone and build nri-mysql
-RUN apk add --no-cache \
-    git \
-    ca-certificates \
-    tzdata
-
-WORKDIR /app
-RUN git clone --depth 1 https://github.com/newrelic/nri-mysql.git nri-mysql
-WORKDIR /app/nri-mysql
-
-RUN go mod download && \
-    go mod verify && \
-    go build \
-    -trimpath \
-    -ldflags="-s -w -extldflags '-static'" \
-    -o /app/nri-mysql/nri-mysql \
-    ./src
-
-FROM mysql:${MYSQL_VERSION}
+# Use official MySQL image
+FROM mysql:8.0-oracle
 
 # Install system dependencies
 RUN microdnf update -y && \
     microdnf install -y wget ca-certificates && \
-    microdnf clean all && \
-    rm -rf /var/cache/yum
-
-# Create necessary directories
-RUN mkdir -p \
-    /var/db/newrelic-infra/newrelic-integrations/bin \
-    /etc/newrelic-infra/integrations.d \
-    /var/log/mysql
+    microdnf clean all
 
 # Copy MySQL configuration
 COPY configs/mysql/my.cnf /etc/mysql/my.cnf
-RUN chmod 644 /etc/mysql/my.cnf
+RUN chmod 644 /etc/mysql/my.cnf && \
+    chown mysql:mysql /etc/mysql/my.cnf
 
-# Copy New Relic configuration
-COPY configs/newrelic-infra.yml /etc/newrelic-infra.yml
-COPY configs/integrations.d/mysql-config.yml /etc/newrelic-infra/integrations.d/mysql-config.yml
-
-# Copy database initialization scripts
+# Copy initialization scripts
 COPY employees-db/employees.sql /docker-entrypoint-initdb.d/employees.sql
 COPY employees-db/load_*.dump /docker-entrypoint-initdb.d/
 
-# Copy nri-mysql binary
-COPY --from=builder /app/nri-mysql/nri-mysql /var/db/newrelic-infra/newrelic-integrations/bin/nri-mysql
-
-# Copy entrypoint script
-COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod 550 /entrypoint.sh
+# Create log directory
+RUN mkdir -p /var/log/mysql && \
+    chown -R mysql:mysql /var/log/mysql
 
 # Expose MySQL port
-EXPOSE 3306/tcp
+EXPOSE 3306
 
-# Set entrypoint and default command
-ENTRYPOINT ["/entrypoint.sh"]
+# Use the default entrypoint and command from the MySQL image
 CMD ["mysqld"]
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s \
-    CMD mysqladmin ping -h localhost -u root || exit 1

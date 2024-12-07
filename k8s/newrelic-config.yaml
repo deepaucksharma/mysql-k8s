@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: newrelic-infra-config
+data:
+  newrelic-infra.yml: |
+    log_file: /var/log/newrelic-infra.log
+    verbose: 1
+    custom_attributes:
+      environment: development
+      service: mysql-database
+      team: performance-testing
+    log_format: json
+    strip_command_line: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-integration-config
+data:
+  mysql-config.yml: |
+    integrations:
+      - name: nri-mysql
+        interval: 30s
+        env:
+          HOSTNAME: localhost
+          PORT: "3306"
+          USERNAME: root
+          PASSWORD: ${MYSQL_ROOT_PASSWORD}
+          METRICS: "1"
+          EXTENDED_METRICS: "1"
+          REMOTE_MONITORING: "1"
+          STATUS_METRICS: "1"
+          INNODB_METRICS: "1"
+          SLAVE_METRICS: "0"
+          CUSTOM_METRICS: |
+            - query: "SELECT COUNT(*) as total_employees FROM employees"
+              metric_name: "employees.total_count"
+              metric_type: "gauge"
+            - query: "SELECT COUNT(*) as total_departments FROM departments"
+              metric_name: "departments.total_count"
+              metric_type: "gauge"
+        labels:
+          environment: development
+          role: primary-database

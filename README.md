@@ -1,9 +1,57 @@
-
 # MySQL-New Relic-k6 Load Testing Environment
 
 ## Overview
 
-Welcome to the **MySQL-New Relic-k6 Load Testing Environment** repository. This project is designed to provide a comprehensive setup for developing, testing, and demonstrating MySQL performance using the Employees sample database. It integrates **New Relic** for monitoring and **k6.io** for load testing, orchestrated via **Docker** for local development and **Kubernetes** for QA and demo deployments.
+This project provides a comprehensive solution for developing, testing, and demonstrating MySQL performance using the Employees sample database. It integrates New Relic for monitoring and k6.io for load testing, orchestrated through Docker for local development and Kubernetes for scalable deployments in QA and demo environments.
+
+### Primary Objectives
+- Ensure high performance and reliability of MySQL database operations
+- Implement robust monitoring and alerting through New Relic
+- Enable seamless scalability using Kubernetes orchestration
+- Provide optimal developer experience with Docker-based local development
+- Facilitate comprehensive load testing using k6.io
+
+## Architecture Overview
+
+The solution architecture comprises several interconnected components:
+
+1. **MySQL Database Layer**
+   - Hosts the Employees sample database
+   - Optimized configuration for performance and scalability
+   - Integrated with New Relic for database monitoring
+   - Persistent storage configuration for data retention
+
+2. **API Layer (Node.js/Express)**
+   - RESTful endpoints for database interactions
+   - Connection pooling and query optimization
+   - New Relic APM integration for performance tracking
+   - Swagger/OpenAPI documentation
+   - Error handling and logging
+
+3. **Monitoring Layer (New Relic)**
+   - Infrastructure monitoring
+   - Application performance monitoring (APM)
+   - Database performance monitoring
+   - Custom dashboards and alerts
+   - Performance analytics and reporting
+
+4. **Load Testing Layer (k6)**
+   - Realistic user interaction simulation
+   - Performance benchmarking
+   - Scalability testing
+   - Integration with New Relic for metrics correlation
+   - Custom test scenarios and thresholds
+
+5. **Container Orchestration**
+   - **Docker:** Local development environment
+     - Multi-container setup with docker-compose
+     - Volume management for persistence
+     - Network isolation and service discovery
+   - **Kubernetes:** QA and Demo environments
+     - Deployment configurations
+     - Service definitions
+     - ConfigMaps and Secrets management
+     - Resource quotas and limits
 
 ## Table of Contents
 
@@ -36,6 +84,7 @@ The architecture of this project is modular, ensuring scalability, maintainabili
    - Hosts the Employees sample database.
    - Integrated with New Relic for monitoring database performance and health.
    - Configured with performance optimizations like indexing and buffer pool sizing.
+   - Uses ephemeral storage for development and testing environments.
 
 2. **API Layer:**
    - Built with Node.js and Express.
@@ -98,134 +147,50 @@ Before getting started, ensure you have the following installed on your Windows 
 
 ## Setup and Installation
 
-### Local Development with Docker Compose
+### Quick Start
 
-1. **Clone the Repository:**
-
-   ```bash
-   git clone https://github.com/your-repo/mysql-newrelic-k6.git
-   cd mysql-newrelic-k6
+1. **Setup Development Environment (Windows)**
+   ```powershell
+   # Run as Administrator
+   ./scripts/setup-dev-env.ps1
    ```
+   This script will:
+   - Install required tools (Docker Desktop, Node.js, Python, k6)
+   - Create .env file from template
+   - Install project dependencies
+   - Configure Docker Desktop with Kubernetes
 
-2. **Configure Environment Variables:**
-
-   Create a `.env` file in the root directory by copying the example:
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Open `.env` in a text editor and fill in your credentials:
-
-   ```env
-   # MySQL Configuration
-   MYSQL_ROOT_PASSWORD=your_mysql_password
-
-   # New Relic Configuration
-   NEW_RELIC_LICENSE_KEY=your_new_relic_license_key
-   ```
-
-3. **Build and Run Containers:**
-
-   Ensure Docker Desktop is running with WSL 2 integration enabled.
-
+2. **Deploy Local Environment**
    ```bash
    ./scripts/deploy-local.sh
    ```
-
    This script will:
+   - Start all services (MySQL, API, Load Generator)
+   - Wait for services to be healthy
+   - Display service URLs
 
-   - Load environment variables.
-   - Build Docker images.
-   - Start containers using Docker Compose.
-   - Wait for MySQL to initialize.
-
-4. **Access Services:**
-
-   - **MySQL:** `localhost:3306`
-   - **API Layer:** `localhost:3000`
-
-5. **Populate Additional Data (Optional):**
-
-   To scale the database with additional records:
-
+3. **Load Test Data (Optional)**
    ```bash
-   docker exec -it mysql-newrelic bash
-   python /scripts/bulk_insert.py
+   python scripts/bulk_insert.py --rows 100000 --batch 10000
    ```
+   This script will:
+   - Create test tables
+   - Insert sample employee data
+   - Show progress and completion time
 
-### Local Kubernetes Deployment
+### Service URLs
 
-1. **Ensure Local Kubernetes is Running:**
+After deployment, services are available at:
+- API Layer: http://localhost:3000
+- Metrics Dashboard: http://localhost:8080
+- New Relic APM: https://one.newrelic.com
 
-   - **Minikube:**
+### Environment Variables
 
-     ```bash
-     minikube start
-     ```
-
-   - **Docker Desktop's Kubernetes:**
-
-     Ensure Kubernetes is enabled in Docker Desktop settings.
-
-2. **Build Docker Images Locally:**
-
-   Configure your shell to use Minikube's Docker daemon (if using Minikube):
-
-   ```bash
-   eval $(minikube docker-env)
-   ```
-
-   Build the necessary Docker images:
-
-   ```bash
-   # Build MySQL Image
-   docker build -f Dockerfile.mysql -t mysql-newrelic:8.0 .
-
-   # Build API Layer Image
-   cd api-layer
-   docker build -t api-layer:latest .
-   cd ..
-
-   # Build Load Generator Image
-   cd load-generator
-   docker build -t load-generator:latest .
-   cd ..
-
-   # Build nri-mysql Image
-   ./scripts/build-nri-mysql.sh
-   ```
-
-3. **Apply Kubernetes Manifests:**
-
-   ```bash
-   kubectl apply -f k8s/secrets.yaml
-   kubectl apply -f k8s/mysql-pvc.yaml
-   kubectl apply -f k8s/mysql-deployment.yaml
-   kubectl apply -f k8s/mysql-service.yaml
-   kubectl apply -f k8s/api-layer-deployment.yaml
-   kubectl apply -f k8s/api-layer-service.yaml
-   kubectl apply -f k8s/load-generator-deployment.yaml
-   kubectl apply -f k8s/load-generator-hpa.yaml
-   kubectl apply -f k8s/network-policy.yaml
-   kubectl apply -f k8s/nri-mysql-deployment.yaml
-   ```
-
-4. **Verify Deployments:**
-
-   ```bash
-   kubectl get all
-   ```
-
-5. **Access Services:**
-
-   - **API Layer:**
-
-     Forward the API service port to your local machine:
-
-     ```bash
-     kubectl port-forward service/api-layer-service 3000:3000
-     ```
+Required environment variables in `.env`:
+- `MYSQL_PASSWORD`: MySQL root password
+- `NEW_RELIC_LICENSE_KEY`: New Relic license key
+- `NEWRELIC_APP_NAME`: Application name in New Relic
 
 ## Configuration
 
