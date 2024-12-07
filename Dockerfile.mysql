@@ -2,7 +2,7 @@
 # Multi-stage build for MySQL with New Relic Integration
 
 # Stage 1: Build New Relic MySQL integration
-FROM golang:1.23-alpine AS builder
+FROM docker.io/library/golang:1.23-alpine AS builder
 
 # Metadata and build arguments
 LABEL maintainer="Your Organization" \
@@ -27,7 +27,7 @@ RUN apk add --no-cache \
     tzdata
 
 # Clone and build New Relic MySQL integration
-RUN git clone --depth 1 --branch ${NRI_MYSQL_BRANCH} ${NRI_MYSQL_REPO} nri-mysql
+RUN git clone --depth 1 ${NRI_MYSQL_REPO} nri-mysql
 
 # Set working directory for build
 WORKDIR /app/nri-mysql
@@ -44,7 +44,7 @@ RUN go build \
     ./src
 
 # Stage 2: Final MySQL image with New Relic Integration
-FROM mysql:8.0-oracle
+FROM docker.io/library/mysql:8.0-oracle
 
 # Metadata
 LABEL maintainer="Your Organization" \
@@ -63,16 +63,13 @@ ENV MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} \
     NEWRELIC_LICENSE_KEY="" \
     VERBOSE=0
 
-# Install additional tools and dependencies
+# Install necessary tools
 RUN microdnf update -y && \
-    microdnf install -y \
-        wget \
-        ca-certificates \
-        shadow-utils && \
+    microdnf install -y wget ca-certificates shadow-utils && \
     microdnf clean all && \
     rm -rf /var/cache/yum
 
-# Create necessary directories with strict permissions
+# Prepare directories for NewRelic
 RUN mkdir -p \
     /var/db/newrelic-infra/newrelic-integrations/bin \
     /etc/newrelic-infra/integrations.d \
@@ -86,23 +83,24 @@ RUN mkdir -p \
     /etc/newrelic-infra \
     /var/log/mysql
 
-# Copy configuration files
+# Copy NewRelic configuration
 COPY --chown=mysql:mysql configs/newrelic-infra.yml /etc/newrelic-infra.yml
 COPY --chown=mysql:mysql configs/integrations.d/mysql-config.yml /etc/newrelic-infra/integrations.d/mysql-config.yml
 COPY --chown=mysql:mysql configs/mysql/my.cnf /etc/mysql/my.cnf
 
-# Copy New Relic MySQL integration binary
-COPY --from=builder --chown=mysql:mysql /app/nri-mysql/nri-mysql /var/db/newrelic-infra/newrelic-integrations/bin/nri-mysql
-
-# Copy sample database files
+# Copy database initialization scripts
 COPY --chown=mysql:mysql employees-db/employees.sql /docker-entrypoint-initdb.d/employees.sql
 COPY --chown=mysql:mysql employees-db/load_*.dump /docker-entrypoint-initdb.d/
 
-# Copy entrypoint script
-COPY --chown=mysql:mysql scripts/entrypoint.sh /entrypoint.sh
+# Copy New Relic MySQL integration binary
+COPY --from=builder --chown=mysql:mysql /app/nri-mysql/nri-mysql /var/db/newrelic-infra/newrelic-integrations/bin/nri-mysql
 
-# Set script permissions
+# Copy entrypoint and make it executable
+COPY --chown=mysql:mysql scripts/entrypoint.sh /entrypoint.sh
 RUN chmod 550 /entrypoint.sh
+
+# Set environment variables
+ENV MYSQL_ALLOW_EMPTY_PASSWORD=yes
 
 # Expose MySQL port
 EXPOSE 3306/tcp

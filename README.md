@@ -1,35 +1,102 @@
+
 # MySQL-New Relic-k6 Load Testing Environment
 
 ## Overview
 
-This project sets up a comprehensive environment for developing, testing, and demonstrating MySQL performance using the Employees sample database. It integrates New Relic for monitoring and k6.io for load testing, orchestrated via Docker for local development and Kubernetes for QA and demo deployments.
+Welcome to the **MySQL-New Relic-k6 Load Testing Environment** repository. This project is designed to provide a comprehensive setup for developing, testing, and demonstrating MySQL performance using the Employees sample database. It integrates **New Relic** for monitoring and **k6.io** for load testing, orchestrated via **Docker** for local development and **Kubernetes** for QA and demo deployments.
 
 ## Table of Contents
 
+- [Architecture](#architecture)
+- [Features](#features)
+- [Technology Stack](#technology-stack)
 - [Prerequisites](#prerequisites)
-- [Environment Setup](#environment-setup)
+- [Setup and Installation](#setup-and-installation)
   - [Local Development with Docker Compose](#local-development-with-docker-compose)
   - [Local Kubernetes Deployment](#local-kubernetes-deployment)
+- [Configuration](#configuration)
+- [Running the Application](#running-the-application)
 - [Load Testing with k6.io](#load-testing-with-k6io)
 - [Testing](#testing)
+  - [Unit Tests](#unit-tests)
+  - [Integration Tests](#integration-tests)
+  - [End-to-End (E2E) Tests](#end-to-end-e2e-tests)
 - [CI/CD Pipeline](#cicd-pipeline)
 - [Security and Best Practices](#security-and-best-practices)
 - [Data Management](#data-management)
-- [Configuration Flexibility](#configuration-flexibility)
 - [Troubleshooting](#troubleshooting)
 - [Contributing](#contributing)
+- [License](#license)
+
+## Architecture
+
+The architecture of this project is modular, ensuring scalability, maintainability, and ease of deployment across different environments. Here's a high-level overview:
+
+1. **MySQL Database:**
+   - Hosts the Employees sample database.
+   - Integrated with New Relic for monitoring database performance and health.
+   - Configured with performance optimizations like indexing and buffer pool sizing.
+
+2. **API Layer:**
+   - Built with Node.js and Express.
+   - Provides RESTful endpoints to interact with the MySQL database.
+   - Instrumented with New Relic APM for application performance monitoring.
+
+3. **Load Generator:**
+   - Utilizes k6.io for load testing the API layer.
+   - Simulates realistic user interactions and stress tests the system.
+   - Monitors performance metrics and integrates with New Relic for real-time insights.
+
+4. **Docker:**
+   - Containers encapsulate each component (MySQL, API Layer, Load Generator).
+   - Ensures consistency across development environments.
+   - Facilitates easy scaling and management of services.
+
+5. **Kubernetes:**
+   - Orchestrates container deployments for QA and demo environments.
+   - Manages scaling, load balancing, and service discovery.
+   - Implements security best practices through Network Policies and RBAC.
+
+6. **CI/CD Pipeline:**
+   - Automates the building, testing, and deployment of containers.
+   - Ensures continuous integration and delivery to Kubernetes clusters.
+
+## Features
+
+- **Scalable Architecture:** Easily scale components horizontally to handle increased load.
+- **Comprehensive Monitoring:** Real-time insights into database and application performance via New Relic.
+- **Automated Load Testing:** Simulate high traffic scenarios with k6.io to identify performance bottlenecks.
+- **Secure Deployments:** Implements best practices for security, including secrets management and network policies.
+- **Flexible Configuration:** Manage environment-specific settings through environment variables and configuration files.
+- **Automated CI/CD:** Streamlines the development workflow with automated testing and deployment processes.
+
+## Technology Stack
+
+- **Docker & Docker Compose:** Containerization and orchestration for local development.
+- **Kubernetes:** Container orchestration for QA and demo deployments.
+- **Node.js & Express:** API layer development.
+- **MySQL:** Relational database management.
+- **New Relic:** Application and infrastructure monitoring.
+- **k6.io:** Load testing and performance benchmarking.
+- **GitHub Actions:** CI/CD pipeline automation.
+- **WSL 2:** Windows Subsystem for Linux for a seamless development experience on Windows.
 
 ## Prerequisites
 
-- **Docker & Docker Compose**
-- **Node.js** (for API layer development)
-- **k6.io** (for load testing)
-- **Kubernetes CLI (`kubectl`)** 
-- **Minikube** or **Docker Desktop's Kubernetes**
-- **New Relic Account** with a valid **license key**
-- **Git** (for version control)
+Before getting started, ensure you have the following installed on your Windows machine:
 
-## Environment Setup
+- **Docker Desktop:** [Download](https://www.docker.com/products/docker-desktop)
+  - **Enable WSL 2 Integration:** During installation, ensure that WSL 2 integration is enabled.
+- **WSL 2:** [Installation Guide](https://docs.microsoft.com/en-us/windows/wsl/install)
+- **Git:** [Download](https://git-scm.com/downloads)
+- **Node.js:** [Download](https://nodejs.org/en/download/)
+- **kubectl:** [Installation Guide](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- **Minikube** or **Docker Desktop's Kubernetes:** [Minikube Installation](https://minikube.sigs.k8s.io/docs/start/)
+- **New Relic Account:** [Sign Up](https://newrelic.com/signup)
+- **Python 3:** [Download](https://www.python.org/downloads/)
+- **Go (for building nri-mysql):** [Download](https://golang.org/dl/)
+
+## Setup and Installation
 
 ### Local Development with Docker Compose
 
@@ -42,18 +109,36 @@ This project sets up a comprehensive environment for developing, testing, and de
 
 2. **Configure Environment Variables:**
 
-   Create a `.env` file in the root directory:
+   Create a `.env` file in the root directory by copying the example:
 
    ```bash
    cp .env.example .env
-   # Edit .env with your credentials
+   ```
+
+   Open `.env` in a text editor and fill in your credentials:
+
+   ```env
+   # MySQL Configuration
+   MYSQL_ROOT_PASSWORD=your_mysql_password
+
+   # New Relic Configuration
+   NEW_RELIC_LICENSE_KEY=your_new_relic_license_key
    ```
 
 3. **Build and Run Containers:**
 
+   Ensure Docker Desktop is running with WSL 2 integration enabled.
+
    ```bash
    ./scripts/deploy-local.sh
    ```
+
+   This script will:
+
+   - Load environment variables.
+   - Build Docker images.
+   - Start containers using Docker Compose.
+   - Wait for MySQL to initialize.
 
 4. **Access Services:**
 
@@ -61,6 +146,8 @@ This project sets up a comprehensive environment for developing, testing, and de
    - **API Layer:** `localhost:3000`
 
 5. **Populate Additional Data (Optional):**
+
+   To scale the database with additional records:
 
    ```bash
    docker exec -it mysql-newrelic bash
@@ -83,30 +170,31 @@ This project sets up a comprehensive environment for developing, testing, and de
 
 2. **Build Docker Images Locally:**
 
-   Ensure your Docker daemon is accessible to Kubernetes (e.g., Minikube's Docker environment).
+   Configure your shell to use Minikube's Docker daemon (if using Minikube):
 
-   - **For Minikube:**
+   ```bash
+   eval $(minikube docker-env)
+   ```
 
-     ```bash
-     eval $(minikube docker-env)
-     ```
+   Build the necessary Docker images:
 
-   - **Build Images:**
+   ```bash
+   # Build MySQL Image
+   docker build -f Dockerfile.mysql -t mysql-newrelic:8.0 .
 
-     ```bash
-     # Build MySQL Image
-     docker build -f Dockerfile.mysql -t mysql-newrelic:8.0 .
+   # Build API Layer Image
+   cd api-layer
+   docker build -t api-layer:latest .
+   cd ..
 
-     # Build API Layer Image
-     cd api-layer
-     docker build -t api-layer:latest .
-     cd ..
+   # Build Load Generator Image
+   cd load-generator
+   docker build -t load-generator:latest .
+   cd ..
 
-     # Build Load Generator Image
-     cd load-generator
-     docker build -t load-generator:latest .
-     cd ..
-     ```
+   # Build nri-mysql Image
+   ./scripts/build-nri-mysql.sh
+   ```
 
 3. **Apply Kubernetes Manifests:**
 
@@ -133,34 +221,112 @@ This project sets up a comprehensive environment for developing, testing, and de
 
    - **API Layer:**
 
+     Forward the API service port to your local machine:
+
      ```bash
      kubectl port-forward service/api-layer-service 3000:3000
      ```
+
+## Configuration
+
+### Environment Variables
+
+Manage environment-specific settings via the `.env` file for Docker Compose and Kubernetes Secrets for Kubernetes deployments.
+
+- **.env.example:**
+
+  ```env
+  # MySQL Configuration
+  MYSQL_ROOT_PASSWORD=your_mysql_password
+
+  # New Relic Configuration
+  NEW_RELIC_LICENSE_KEY=your_new_relic_license_key
+  ```
+
+### Kubernetes Secrets
+
+Sensitive information is managed using Kubernetes Secrets. Ensure that the `secrets.yaml` file is populated with base64-encoded credentials.
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-secret
+type: Opaque
+data:
+  MYSQL_ROOT_PASSWORD: <base64_encoded_password>
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: newrelic-license-key
+type: Opaque
+data:
+  NEW_RELIC_LICENSE_KEY: <base64_encoded_license_key>
+```
+
+**Encoding Secrets:**
+
+Encode your secrets using base64:
+
+```bash
+echo -n 'your_mysql_password' | base64
+echo -n 'your_new_relic_license_key' | base64
+```
+
+## Running the Application
+
+### Starting Services with Docker Compose
+
+```bash
+./scripts/deploy-local.sh
+```
+
+This script performs the following actions:
+
+1. Loads environment variables from `.env`.
+2. Builds Docker images for MySQL, API Layer, Load Generator, and nri-mysql.
+3. Starts the containers in detached mode.
+4. Waits for MySQL to initialize.
+5. (Optional) Runs the bulk insert script to populate additional data.
+
+### Stopping Services
+
+```bash
+./scripts/reset-local.sh
+```
+
+This script stops and removes all containers and associated volumes.
 
 ## Load Testing with k6.io
 
 ### Running Load Tests Locally
 
-1. **Ensure the API Layer is Running Locally via Docker Compose or Kubernetes.**
+1. **Ensure the API Layer is Running:**
+
+   Make sure the API service is accessible at `http://localhost:3000`.
 
 2. **Run k6 Tests:**
 
    ```bash
    export NEW_RELIC_LICENSE_KEY=your_new_relic_license_key
-   export API_URL=http://localhost:3000 # or your Kubernetes API Layer URL
+   export API_URL=http://localhost:3000
    docker build -t load-generator:latest load-generator/
    docker run --env NEW_RELIC_LICENSE_KEY=$NEW_RELIC_LICENSE_KEY --env API_URL=$API_URL load-generator:latest
    ```
+
+   This command builds the Load Generator Docker image and runs the k6 test script with the specified environment variables.
 
 ### Running Load Tests on Kubernetes
 
 1. **Deploy Load Generator:**
 
-   Ensure the `load-generator-deployment.yaml` is applied.
+   Ensure the `load-generator-deployment.yaml` is applied to your Kubernetes cluster.
 
 2. **Monitor Tests:**
 
-   Use `kubectl logs` to monitor the load generator.
+   View the logs of the Load Generator to monitor test progress and results:
 
    ```bash
    kubectl logs -f deployment/load-generator
@@ -170,7 +336,9 @@ This project sets up a comprehensive environment for developing, testing, and de
 
 ### Unit Tests
 
-- **API Layer Unit Tests**: Located in `api-layer/__tests__/`.
+The API layer includes unit tests to verify individual components and functions.
+
+- **Location:** `api-layer/__tests__/server.test.js`
 
 - **Run Tests:**
 
@@ -182,188 +350,153 @@ This project sets up a comprehensive environment for developing, testing, and de
 
 ### Integration Tests
 
-- **Database Integration Tests**: Ensure API endpoints correctly interact with MySQL.
+Integration tests ensure that different services interact correctly, particularly between the API layer and MySQL.
 
-- **Run Tests:**
-
-  Similar to unit tests but focus on end-to-end interactions.
+- **Approach:**
+  - Mock database connections.
+  - Validate API responses based on simulated database interactions.
 
 ### End-to-End (E2E) Tests
 
-- **Load Testing with k6.io**: Simulate realistic workloads and monitor system behavior.
+End-to-end tests simulate real user scenarios to validate the entire workflow.
 
-- **Automated E2E Testing**: Use tools like **Cypress** or **Postman** for comprehensive E2E tests beyond load testing.
+- **Load Testing:** Performed using k6.io to assess system behavior under load.
+- **Automated E2E Testing:** Consider using tools like **Cypress** or **Postman** for comprehensive testing beyond load scenarios.
 
 ## CI/CD Pipeline
 
-```yaml
-# .github/workflows/deploy.yml
-name: CI/CD Pipeline
+Automate the building, testing, and deployment processes using GitHub Actions.
 
-on:
-  push:
-    branches:
-      - main
+### Workflow Configuration
 
-jobs:
-  build-deploy:
-    runs-on: ubuntu-latest
+- **File:** `.github/workflows/deploy.yml`
 
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+- **Triggers:**
+  - Runs on every push to the `main` branch.
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+- **Jobs:**
+  - **Checkout Code:** Retrieves the latest code from the repository.
+  - **Set up Docker Buildx:** Prepares Docker Buildx for multi-platform builds.
+  - **Build Docker Images:** Builds images for MySQL, API Layer, Load Generator, and nri-mysql.
+  - **Set Kubernetes Context:** Configures `kubectl` with the appropriate context using Kubernetes configuration stored in GitHub Secrets.
+  - **Apply Kubernetes Manifests:** Deploys all Kubernetes resources to the cluster.
 
-      - name: Build MySQL Image
-        run: |
-          docker build -f Dockerfile.mysql -t mysql-newrelic:8.0 .
+### Secrets Management
 
-      - name: Build API Layer Image
-        run: |
-          cd api-layer
-          docker build -t api-layer:latest .
-          cd ..
-
-      - name: Build Load Generator Image
-        run: |
-          cd load-generator
-          docker build -t load-generator:latest .
-          cd ..
-
-      - name: Build nri-mysql Image
-        run: |
-          ./scripts/build-nri-mysql.sh
-
-      - name: Set Kubernetes Context
-        uses: azure/setup-kubectl@v1
-        with:
-          version: 'latest'
-          kubeconfig: ${{ secrets.KUBE_CONFIG }}
-
-      - name: Apply Kubernetes Manifests
-        run: |
-          kubectl apply -f k8s/secrets.yaml
-          kubectl apply -f k8s/mysql-pvc.yaml
-          kubectl apply -f k8s/mysql-deployment.yaml
-          kubectl apply -f k8s/mysql-service.yaml
-          kubectl apply -f k8s/api-layer-deployment.yaml
-          kubectl apply -f k8s/api-layer-service.yaml
-          kubectl apply -f k8s/load-generator-deployment.yaml
-          kubectl apply -f k8s/load-generator-hpa.yaml
-          kubectl apply -f k8s/network-policy.yaml
-          kubectl apply -f k8s/nri-mysql-deployment.yaml
-```
+Store sensitive information like `KUBE_CONFIG` and other credentials securely in GitHub Secrets.
 
 ## Security and Best Practices
 
-- **Readiness and Liveness Probes:** Implemented in Kubernetes deployment manifests.
-- **Security Context:** Running containers as non-root users for enhanced security.
-- **Network Policies:** Restrict traffic flow between services.
-- **Resource Requests and Limits:** Defined to ensure stable performance.
-- **Use Specific Version Tags:** Avoid using `latest` to ensure stability.
-- **Secrets Management:** Managed via Kubernetes Secrets.
+- **Secrets Management:**
+  - Use Kubernetes Secrets to manage sensitive data.
+  - Avoid hardcoding credentials in code or configuration files.
+
+- **Security Context:**
+  - Run containers as non-root users to minimize security risks.
+
+- **Network Policies:**
+  - Implement Kubernetes Network Policies to restrict traffic between services.
+
+- **Resource Limits:**
+  - Define CPU and memory requests and limits to ensure stable performance and prevent resource exhaustion.
+
+- **Vulnerability Scanning:**
+  - Regularly scan Docker images for vulnerabilities using tools like **Trivy** or **Clair**.
+
+- **Monitoring and Logging:**
+  - Utilize New Relic for real-time monitoring.
+  - Aggregate logs using the ELK stack or Fluentd for centralized logging.
 
 ## Data Management
 
-- **Employees Database:** Populated with realistic and diverse data.
-- **Bulk Insert Scripts:** Facilitate data scaling and testing various scenarios.
+- **Employees Database:**
+  - Populated with realistic data to simulate real-world scenarios.
+  - Includes a script (`bulk_insert.py`) to scale the database by duplicating entries.
+
+- **Database Optimization:**
+  - Configured with performance optimizations like `innodb_buffer_pool_size` and `max_connections`.
+  - Implements slow query logging for performance analysis.
 
 ## Configuration Flexibility
 
-- **Environment Variables:** Manage different settings via `.env` files.
-- **Docker Compose Profiles:** Handle different environments if needed.
-- **Kubernetes Namespaces:** Segregate environments within Kubernetes.
+- **Environment Variables:**
+  - Manage different configurations for development, QA, and demo environments using `.env` files and Kubernetes Secrets.
+
+- **Infrastructure as Code:**
+  - Define all infrastructure components using code (Dockerfiles, Kubernetes manifests) to ensure consistency and reproducibility.
+
+- **Modular Scripts:**
+  - Use scripts for building, deploying, and resetting environments to streamline workflows.
 
 ## Troubleshooting
 
-- **Check Pod Status:**
+### Common Issues
 
-  ```bash
-  kubectl get pods
-  ```
+1. **Docker Compose Not Found in WSL 2:**
 
-- **View Logs:**
+   **Solution:**
+   - Ensure Docker Desktop is installed and WSL 2 integration is enabled.
+   - Follow the [Docker Desktop WSL 2 Integration Guide](https://docs.docker.com/go/wsl2/) for detailed instructions.
 
-  ```bash
-  kubectl logs <pod-name>
-  ```
+2. **Kubernetes Deployment Failures:**
 
-- **Describe Resources:**
+   **Solution:**
+   - Check pod statuses:
 
-  ```bash
-  kubectl describe deployment <deployment-name>
-  ```
+     ```bash
+     kubectl get pods
+     ```
 
-## Contributing
+   - View logs for failing pods:
 
-Contributions are welcome! Please open issues and submit pull requests for enhancements or bug fixes.
+     ```bash
+     kubectl logs <pod-name>
+     ```
 
-# MySQL Performance Monitoring with New Relic and Kubernetes
+   - Describe resources for more details:
 
-## Overview
-This project provides a comprehensive solution for monitoring MySQL performance using New Relic and Kubernetes, with a focus on observability, security, and performance optimization.
+     ```bash
+     kubectl describe deployment <deployment-name>
+     ```
 
-## Features
-- MySQL 8.0 Container
-- New Relic Integration
-- Enhanced Security Configuration
-- Performance Monitoring
-- Kubernetes Ready
+3. **MySQL Initialization Issues:**
 
-## Prerequisites
-- Docker
-- Docker Compose
-- Kubernetes Cluster (optional)
-- New Relic Account
+   **Solution:**
+   - Ensure the `entrypoint.sh` script has execute permissions.
+   - Verify that the `employees.sql` file is correctly placed in `/docker-entrypoint-initdb.d/`.
+   - Check MySQL logs for specific error messages.
 
-## Configuration
-- MySQL Configuration: `configs/mysql/my.cnf`
-- New Relic Integration: `configs/integrations.d/mysql-config.yml`
+4. **Load Tests Not Running Properly:**
 
-## Quick Start
+   **Solution:**
+   - Ensure the API Layer is accessible at the specified `API_URL`.
+   - Verify environment variables are correctly set for the Load Generator.
+   - Check Load Generator logs for errors.
 
-### Build Docker Image
-```bash
-docker build -f Dockerfile.mysql -t mysql-newrelic:8.0 .
-```
+### Debugging Steps
 
-### Run Container
-```bash
-docker run -d \
-  --name mysql-newrelic \
-  -e MYSQL_ROOT_PASSWORD=your_password \
-  -p 3306:3306 \
-  mysql-newrelic:8.0
-```
+1. **Verify Docker Services:**
 
-## Environment Variables
-- `MYSQL_ROOT_PASSWORD`: MySQL root password
-- `ENVIRONMENT`: Deployment environment
-- `CLUSTER_NAME`: Kubernetes cluster name
-- `NEWRELIC_LICENSE_KEY`: New Relic license key
+   ```bash
+   docker ps
+   ```
 
-## Security
-- Non-root container execution
-- Strict file permissions
-- Environment-based configuration
+2. **Check Kubernetes Resources:**
 
-## Monitoring
-Integrated New Relic MySQL integration provides:
-- Performance metrics
-- Database statistics
-- Query performance tracking
+   ```bash
+   kubectl get all
+   ```
 
-## Contributing
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+3. **Inspect Logs:**
 
-## License
-[Specify your license here]
+   ```bash
+   kubectl logs <pod-name>
+   ```
 
-## Disclaimer
-This is a sample implementation. Ensure to review and adapt to your specific security and performance requirements.
+4. **Rebuild and Redeploy:**
+
+   Sometimes, rebuilding Docker images and redeploying can resolve issues.
+
+   ```bash
+   ./scripts/deploy-local.sh
+   ```

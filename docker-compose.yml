@@ -6,42 +6,36 @@ services:
       context: .
       dockerfile: Dockerfile.mysql
     container_name: mysql-newrelic
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=employees
+      - NEWRELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
     ports:
       - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
     volumes:
-      - mysql_data:/var/lib/mysql
-      - mysql_logs:/var/log/mysql
+      - mysql-data:/var/lib/mysql
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 4G
-        reservations:
-          cpus: '1'
-          memory: 2G
 
   api-layer:
-    build:
+    build: 
       context: ./api-layer
       dockerfile: Dockerfile
     container_name: api-layer
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=employees
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
     ports:
       - "3000:3000"
-    environment:
-      MYSQL_HOST: mysql-newrelic
-      MYSQL_USER: root
-      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: employees
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
     depends_on:
       mysql:
         condition: service_healthy
@@ -61,25 +55,21 @@ services:
           memory: 512M
 
   load-generator:
-    build:
+    build: 
       context: ./load-generator
       dockerfile: Dockerfile
     container_name: load-generator
     environment:
-      API_URL: http://api-layer:3000
-      NEW_RELIC_LICENSE_KEY: ${NEW_RELIC_LICENSE_KEY}
+      - API_URL=http://api-layer:3000
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
     depends_on:
       api-layer:
         condition: service_healthy
     deploy:
       resources:
         limits:
-          cpus: '1'
-          memory: 1G
-        reservations:
           cpus: '0.5'
           memory: 512M
 
 volumes:
-  mysql_data:
-  mysql_logs:
+  mysql-data:
