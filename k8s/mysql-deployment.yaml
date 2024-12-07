@@ -1,26 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: mysql-newrelic
+  name: mysql
   labels:
-    app: mysql-newrelic
+    app: mysql
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: mysql-newrelic
+      app: mysql
   template:
     metadata:
       labels:
-        app: mysql-newrelic
+        app: mysql
     spec:
-      securityContext:
-        runAsUser: 999
-        runAsGroup: 999
-        fsGroup: 999
       containers:
-        - name: mysql-newrelic
-          image: mysql-newrelic:8.0
+        - name: mysql
+          image: mysql:8.0
           ports:
             - containerPort: 3306
           env:
@@ -29,36 +25,19 @@ spec:
                 secretKeyRef:
                   name: mysql-secret
                   key: MYSQL_ROOT_PASSWORD
-            - name: NEW_RELIC_LICENSE_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: newrelic-license-key
-                  key: NEW_RELIC_LICENSE_KEY
+            - name: MYSQL_DATABASE
+              value: employees
           volumeMounts:
             - name: mysql-persistent-storage
               mountPath: /var/lib/mysql
-            - name: mysql-logs
-              mountPath: /var/log/mysql
-          readinessProbe:
-            tcpSocket:
-              port: 3306
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            tcpSocket:
-              port: 3306
-            initialDelaySeconds: 30
-            periodSeconds: 10
           resources:
             requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
               cpu: "1"
               memory: "2Gi"
-            limits:
-              cpu: "4"
-              memory: "8Gi"
       volumes:
         - name: mysql-persistent-storage
           persistentVolumeClaim:
             claimName: mysql-pvc
-        - name: mysql-logs
-          emptyDir: {}

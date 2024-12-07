@@ -1,13 +1,12 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: mysql-newrelic-service
+  name: mysql
 spec:
-  type: ClusterIP
-  ports:
-    - port: 3306
-      targetPort: 3306
-      protocol: TCP
-      name: mysql
   selector:
-    app: mysql-newrelic
+    app: mysql
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP

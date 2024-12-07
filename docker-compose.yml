@@ -18,8 +18,12 @@ services:
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
       interval: 10s
-      timeout: 5s
-      retries: 5
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    depends_on:
+      mysql:
+        condition: service_healthy
 
   api-layer:
     build: 
@@ -32,8 +36,8 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_DATABASE=employees
-      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
-      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME}
+      - NEWRELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEWRELIC_APP_NAME=${NEW_RELIC_APP_NAME}
     ports:
       - "3000:3000"
     depends_on:
@@ -61,7 +65,7 @@ services:
     container_name: load-generator
     environment:
       - API_URL=http://api-layer:3000
-      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEWRELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
     depends_on:
       api-layer:
         condition: service_healthy
